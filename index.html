@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm Clock</title>
+    <style>
+        body {
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+        }
+
+        #alarm,
+        label {
+            font-size: x-large;
+        }
+
+        #my-alarms {
+            margin-top: 30px;
+            display: none;
+        }
+
+        #list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            font-size: large;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid black;
+            border-radius: 10px;
+            width: fit-content;
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+        <form onsubmit="main(event)">
+            <label for="alarm"><strong>Set Alarm</strong></label>
+            <br /><br />
+            <input type="datetime-local" name="alarm" id="alarm" required="" />
+            <br /><br />
+            <input type="submit" value="Done" />
+            <button onclick="location.reload()">Refresh</button>
+        </form>
+
+        <div id="my-alarms">
+            <h2>My Alarms</h2>
+            <ul id="list">
+            </ul>
+        </div>
+    </center>
+</body>
+
+<script>
+    let alarms = localStorage.getItem("alarms");
+    let listId = 1, timeDiff;
+
+    if (alarms != null && alarms.length != 0) {
+        alarms = JSON.parse(alarms);
+
+        // Activate any previously set alarms. If missed, remove them
+        alarms.forEach(ele => {
+            if (!isAlarmInPast(ele.time))
+                scheduleAlarm(ele.time, ele.id);
+            else 
+                deleteAlarm(ele.id);
+        });
+    }
+
+    function isAlarmInPast(alarmTime) {
+        const nowTime = Date.now();
+        timeDiff = new Date(alarmTime) - nowTime;
+
+        if (timeDiff <= 0) return true;
+        return false;
+    }
+
+    function main(event) {
+        event.preventDefault();
+
+        const alarm = document.getElementById("alarm");
+        const alarmTime = alarm.value;
+        alarm.value = "";
+
+        let alarmId = crypto.randomUUID(); // unique alarm ID
+
+        if (!isAlarmInPast(alarmTime)) {
+            scheduleAlarm(alarmTime, alarmId);
+            storeAlarm(alarmTime, alarmId);
+            return;
+        }
+        return alert("We only show alarms for the Future!");
+    }
+
+    function scheduleAlarm(alarmTime, alarmId) {
+        const ul = document.getElementById("list");
+        const li = document.createElement("li");
+        const [date, time] = alarmTime.split("T");
+
+        li.id = listId;
+        li.innerHTML = `<strong> Date: </strong> ${date}, <strong> Time: </strong> ${time}`;
+        li.style.backgroundColor = "floralwhite";
+        ul.appendChild(li);
+
+        document.getElementById("my-alarms").style.display = "block";
+
+        setTimeout(() => setOffAlarm(alarmId, li.id), timeDiff);
+        listId++;
+    }
+
+    function setOffAlarm(alarmId, listId) {
+        new Audio("alarm-clock.mp3").play();
+        const li = document.getElementById(listId);
+        li.style.backgroundColor = "lightpink";
+
+        deleteAlarm(alarmId);
+    }
+
+    function storeAlarm(time, id) {
+        if (alarms == null)
+            localStorage.setItem("alarms", JSON.stringify([{ id, time }]));
+        else {
+            alarms.push({ id, time });
+            localStorage.setItem("alarms", JSON.stringify(alarms));
+        }
+    }
+
+    function deleteAlarm(alarmId) {
+        alarms = alarms.filter(obj => obj.id != alarmId);
+        localStorage.setItem("alarms", JSON.stringify(alarms));
+    }
+</script>
+
+</html>
